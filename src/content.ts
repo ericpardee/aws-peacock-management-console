@@ -107,7 +107,7 @@ const findConfig = (
     if (Array.isArray(config.env)) {
       return config.env.some((e) => isEnvMatch(e, accountId, region))
     } else {
-      return isEnvMatch(config.env, accountId, region) && config.env.name
+      return isEnvMatch(config.env, accountId, region)
     }
   })
 
@@ -286,8 +286,11 @@ const run = async () => {
       updateStyle(config?.style)
     }
     const accountMenuButtonTitle = getAccountMenuButtonTitle()
-    if (accountMenuButtonTitle && config?.env.name) {
-      accountMenuButtonTitle.innerText = `${config.env.name}`
+    if (accountMenuButtonTitle) {
+      const envName = Array.isArray(config?.env) ? config?.env.find(env => env.account === accountId)?.name : config?.env.name;
+      if (envName) {
+        accountMenuButtonTitle.innerText = envName
+      }
     }
   }
 }
