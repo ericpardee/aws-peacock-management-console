@@ -107,9 +107,9 @@ const parseConfigList = (configList: string) => {
 }
 
 const loadAccountNameList = async (): Promise<AccountName[] | null> => {
-  const accountNameList = await accountNameRepository.get()
+  const accountNameList = await accountNameRepository.getAccountNames()
   if (accountNameList) {
-    return JSON.parse(accountNameList) as AccountName[]
+    return accountNameList as AccountName[]
   } else {
     console.error("Failed to load account name list.")
     return null
