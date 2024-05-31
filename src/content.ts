@@ -1,10 +1,6 @@
 import * as JSONC from 'jsonc-parser'
 import yaml from 'js-yaml'
 import {
-  AccountName,
-  AccountNameRepository,
-} from './lib/account-name-repository'
-import {
   Config,
   ConfigList,
   ConfigRepository,
@@ -16,16 +12,11 @@ const AWS_SQUID_INK = '#232f3e'
 const AWSUI_COLOR_GRAY_300 = '#d5dbdb'
 const AWSUI_COLOR_GRAY_900 = '#16191f'
 
-const AWS_SERVICE_ROLE_FOR_SSO_PREFIX = /AWSReservedSSO_/ // https://docs.aws.amazon.com/singlesignon/latest/userguide/using-service-linked-roles.html
-const AWS_IAM_ROLE_NAME_PATTERN = /[\w+=,.@-]+/ // https://docs.aws.amazon.com/IAM/latest/APIReference/API_CreateRole.html
-const AWS_SSO_USR_NAME_PATTERN = /[\w+=,.@-]+/ // Username can contain alphanumeric characters, or any of the following: +=,.@-
-
 const repositoryProps: RepositoryProps = {
   browser: chrome || browser,
   storageArea: 'local',
 }
 const configRepository = new ConfigRepository(repositoryProps)
-const accountNameRepository = new AccountNameRepository(repositoryProps)
 
 const selectElement = (query: string): HTMLElement | null =>
   document.querySelector<HTMLElement>(query)
@@ -104,11 +95,6 @@ const parseConfigList = (configList: string) => {
   }
 }
 
-const loadAccountNameList = async (): Promise<AccountName[] | null> => {
-  const accountNameList = await accountNameRepository.get()
-  return accountNameList ? (JSON.parse(accountNameList) as AccountName[]) : null
-}
-
 const isEnvMatch = (env: Environment, accountId: string, region: string) =>
   String(env.account) === accountId && (env.region ? env.region === region : true)
 
@@ -121,7 +107,7 @@ const findConfig = (
     if (Array.isArray(config.env)) {
       return config.env.some((e) => isEnvMatch(e, accountId, region))
     } else {
-      return isEnvMatch(config.env, accountId, region)
+      return isEnvMatch(config.env, accountId, region) && config.env.name
     }
   })
 
@@ -215,12 +201,6 @@ const updateNavigationStyle = (
     ? AWS_SQUID_INK
     : '#ffffff'
 
-  // Selector specification policy
-  // 1. Use `id` or `data-testid`
-  // 2. To minimize the impact of layout disruptions, set up CSS selectors for each UI's smallest elements (Atoms). 
-  // 3. Use the `data-testid` of the closest parent element of the element you want to change the color of.
-  // 4. Conversely, within Atoms, use the Descendent Selector to avoid the effects of AWS refactoring.
-  // 5. Instead of specifying `path`, `g`, `circle` individually, use `svg > *`.
   const css = `
   header[data-testid="awsc-nav-header"] nav {
     background-color: ${navigationBackgroundColor} !important;
@@ -296,30 +276,7 @@ const updateStyle = (style: Config['style']) => {
   }
 }
 
-const isNotIamUserButAwsSsoUser = (userName: string) => {
-  const awsSsoUserNameRe = new RegExp(
-    `^${AWS_SERVICE_ROLE_FOR_SSO_PREFIX.source + AWS_IAM_ROLE_NAME_PATTERN.source
-    }/${AWS_SSO_USR_NAME_PATTERN.source}$`
-  )
-  return awsSsoUserNameRe.test(userName)
-}
-
-const patchAccountNameIfAwsSso = (accountName: AccountName) => {
-  const accountMenuButtonTitle = getAccountMenuButtonTitle()
-  if (!accountMenuButtonTitle) {
-    return
-  }
-  const userName = (
-    selectElement('button[data-testid="awsc-copy-username"]')
-      ?.previousElementSibling as HTMLSpanElement
-  )?.innerText
-  if (userName && isNotIamUserButAwsSsoUser(userName)) {
-    accountMenuButtonTitle.innerText = `${accountMenuButtonTitle.innerText} @ ${accountName.accountName}`
-  } // else not login by user, like root user or IAM role
-}
-
 const run = async () => {
-  const accountNameList = await loadAccountNameList()
   const configList = await loadConfigList()
   const accountId = await getAccountId()
   const region = getRegion()
@@ -328,13 +285,9 @@ const run = async () => {
     if (config?.style) {
       updateStyle(config?.style)
     }
-  }
-  if (accountNameList && accountId) {
-    const accountName = accountNameList.find(
-      (accountName) => accountName.accountId === accountId
-    )
-    if (accountName) {
-      patchAccountNameIfAwsSso(accountName)
+    const accountMenuButtonTitle = getAccountMenuButtonTitle()
+    if (accountMenuButtonTitle && config?.env.name) {
+      accountMenuButtonTitle.innerText = `${config.env.name}`
     }
   }
 }
