@@ -56,7 +56,7 @@ const saveAccountName = async () => {
   const accountNames = Array.from(portalInstanceSection).map(toAccountNameAndId).filter(Boolean) as AccountName[]
   if (accountNames.length > 0) {
     try {
-      await accountNameRepository.set(accountNames)
+      await accountNameRepository.setAccountNames(accountNames)
       console.log("Account names saved successfully.")
     } catch (error) {
       console.error("Failed to save account names:", error)
