@@ -78,7 +78,7 @@ const getAccountId = async (): Promise<string | null | undefined> => {
     const accountDetailMenu = await waitForElement('div[data-testid="account-detail-menu"]', 10000)
     return getAccountIdFromDescendantByDataTestidEqualsAwscCopyAccountId(accountDetailMenu) || getAccountIdByRegex(accountDetailMenu);
   } catch (e) {
-    console.error(e)
+    console.error("Failed to fetch account ID:", e)
     return null
   }
 }
@@ -92,6 +92,7 @@ const loadConfigList = async (): Promise<ConfigList | null> => {
   if (configList) {
     return parseConfigList(configList)
   } else {
+    console.error("Failed to load configuration list.")
     return null
   }
 }
@@ -100,13 +101,19 @@ const parseConfigList = (configList: string) => {
   try {
     return yaml.load(configList) as ConfigList
   } catch (e) {
-    return JSONC.parse(configList) as ConfigList
+    console.error("Failed to parse configuration list:", e)
+    return null
   }
 }
 
 const loadAccountNameList = async (): Promise<AccountName[] | null> => {
   const accountNameList = await accountNameRepository.get()
-  return accountNameList ? (JSON.parse(accountNameList) as AccountName[]) : null
+  if (accountNameList) {
+    return JSON.parse(accountNameList) as AccountName[]
+  } else {
+    console.error("Failed to load account name list.")
+    return null
+  }
 }
 
 const isEnvMatch = (env: Environment, accountId: string, region: string) =>

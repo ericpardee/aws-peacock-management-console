@@ -45,7 +45,7 @@ const toAccountNameAndId = (
   return accountName && accountId ? { accountName, accountId } : null
 }
 
-const saveAccountName = () => {
+const saveAccountName = async () => {
   const portalInstanceSection = document.querySelectorAll<HTMLDivElement>(
     'div.portal-instance-section'
   )
@@ -53,9 +53,17 @@ const saveAccountName = () => {
     console.error('portal-instance-section is not detected.')
     return
   }
-  accountNameRepository.set(
-    JSON.stringify(Array.from(portalInstanceSection).map(toAccountNameAndId))
-  )
+  const accountNames = Array.from(portalInstanceSection).map(toAccountNameAndId).filter(Boolean) as AccountName[]
+  if (accountNames.length > 0) {
+    try {
+      await accountNameRepository.set(accountNames)
+      console.log("Account names saved successfully.")
+    } catch (error) {
+      console.error("Failed to save account names:", error)
+    }
+  } else {
+    console.log("No account names to save.")
+  }
 }
 
 const saveAccountNameIfAwsAccountSelected = (callback: () => void) => {
